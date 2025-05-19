@@ -41,8 +41,8 @@ mv <old_name> <new_name>
 ```
 
 ## C Crash Course
-- [ ] (Part 1)[https://www.youtube.com/watch?v=zUAKckUxm2Q&ab_channel=TDT4186_21]
-- [ ] (Part 2)[https://www.youtube.com/watch?v=rKv-SYBHubM&ab_channel=TDT4186_21]
+- [ ] [Part 1](https://www.youtube.com/watch?v=zUAKckUxm2Q&ab_channel=TDT4186_21)
+- [ ] [Part 2](https://www.youtube.com/watch?v=rKv-SYBHubM&ab_channel=TDT4186_21)
 ### From Source Code to binary
 
 ### Programming paradigms
@@ -180,7 +180,7 @@ For including header files there are two conventions:
 
 #### 9. Arrays
 - Syntax:
-  - <dataType> <functionName> [noElements] // only elements of the same type possible
+  - <dataType xmlns=""> <functionName> [noElements] // only elements of the same type possible
 - When declaring the array, memory of length * sizeof(dataType) is reserved
 ##### Passing Arrays to functions
 - Arrays are stored sequentially in memory
@@ -207,13 +207,240 @@ char ch = 'X'; // Num constant with one sign, can be interpreted as numeric
 char ch[] = "X"; // String constant with two signs, X and \0
 ```
 - Reading strings with scanf or fgets
-  - When using scanf to read char arrays there is no need for the &someVar convention as with integer or char values,
+  - When using scanf to read char arrays, there is no need for the &someVar convention as with integer or char values,
   as a char array already is a pointer to the beginning of the string!
   - char *fgets (char *str, int n_chars, FILE *stream)
 ```c
 char myVar[30];
 scanf("%25s", myVar); // Option 1
 fgets(myVar, sizeof(myVar), stdin); // Option 2
-
 ```
 - Functions to work with strings are inherent in the <string.h> library (see documentation)
+#### 10. Pointer
+##### Basics
+A pointer represents the address and the type of a storage object 
+- Use case:
+  - Dynamic memory allocation, administration, releasing during runtime 
+  - Passing objects, functions, arrays, etc. to functions by referencing their memory address
+  - Implementing lists / trees / other complex data structures
+  - Typeless pointer void* to process data objects of arbitrary type
+- Declaration:
+  - <data_type> *name; 
+  - // The name is the identifier and is declared as the pointer on an object of type "data_type"
+  - When declaring a pointer, remember visibility in blocks / funcitons - if not declared properly when
+    being called, it refers to a random address in memory
+  - Pointes within a block have a random address without initialisatioin whereas global and static pointers
+    are initialized implicitly as NULL-pointers without prior manual initialisation
+    - To avoid segmentation fault, always initialize pointers as NULL when not used immediately 
+```c
+int *iptr; // int pointer
+int ival = 255; // int variable
+iptr = &ival; // passing address of variable to pointer with address operator "&"
+```
+- To print pointer-addresses in hex format, use %p
+- Type transformation:
+  - manipulating the type of a pointer, i.e.:
+```c
+char *bytePtr;
+float fval = 255.255;
+bytePtr = (char *)&fval;
+```
+  - Now, a char-pointer points on the first byte of the storage object fval, which could now be manipulated bytewise
+- Accessing pointer content:
+  - With * we can access the value that a pointer stores -> "dereferencing"
+    - Values of a pointer can be accessd or manipulated by dereferencing
+##### Pointers as Parameters
+When calling conventional functions, parameters would be copied such that they where available to functions as local
+variables. Alternatively, we could pass addresses to objects instead of a copy:
+```c
+void reset (int *val) {
+    *val = 0;
+}
+
+int main (void) {
+  int ival = 128;
+  int *iptr = &ival;
+  reset(iptr); // same as reset(&ival)
+  
+  return 0;
+}
+```
+##### Pointers as Return Values
+A pointer can also be declared as a return value of a function, however: when calling a function, 
+parameters are copied to the stack frame and every operation a function performs happend here, once
+finished, the storage is released. Thus, when operations are performed and a pointer / an address is
+returned, this points to an undefined memory area. Thus, when we want to return a valid memory area,
+there are three options: We can use
+- Static or global storage
+- A memory or addresse passed as an argument when calling the function
+- A memory reserved at runtime using malloc() // more later
+```c
+// Static example, malloc() usually better => more later
+int* ifget (void) {
+static int buffer[5] = { 1, 2, 3, 4, 5};
+```
+##### Pointer Arithmetics
+Means the access of pointers without indirectionoperator * and thus the usage of operations for 
+pointers and not their values / objects they dereference (often used with c-arrays)
+- Comparisons with usual operators (true i.e., when one address is larger than the other). Often used
+to determine whether a pointer is a null pointer
+- Subtraction returns the number of elements between two pointers (use %ld)
+- Addition / subtraction of a pointer with an integer to in-/decrement them, i.e., to point on different
+array elements
+  - Can be used to access different array elements. For this, array and pointer must be of same type,
+    such that a increment operation adds the correct number of bytes to the pointer 
+##### Arrays and pointer as parameters
+- Arrays are passed to functions as addresses (address of first element) + their length
+```c
+void modArr (int arr[], size i);
+void modArr (int *arr, size i);
+void modArr (const int *arr, size i); // array cannot be manipulated
+```
+- By passing address, function gets access to original element (no copy) and can manipulate it
+  - with the const parameter, the manipulation of an array can be mitigated --> best practice
+##### Char-Arrays and Pointers
+- Work the same as numeric arrays with the exception that when initializing an array in with the
+pointer notation, the array that this pointer represents, can be altered and be assigned a different
+array:
+```c
+char str[] = "hallo";
+char *ptr = "welt";
+ptr = str; // pointer now points on &str[0]
+```
+##### Pointer Arrays
+- Can be used as substitude for 2D-arrays, especially for 2D-char-arrays, to mitigate flexibility
+and memory waste limitations (dynamically adding/removing elements, reserving too much space)
+- Such an array does not store the values itself but rather the pointers to these elements/objects
+```c
+char *words[] = {"ich", "bin", "ein", "pointer", "array"};
+printf("Wort: %s", words[0]); 
+// in words[0] steht die Addresse zu array {"ich"} bzw. zum "i"
+```
+##### Void Pointer
+- Void pointer can be used to assign addresses, where the use case / datatype is not yet known 
+  - I.e., instead of writing a function for every datatype, we can just write a universal one with
+    a void pointer
+```c
+void *malloc (size t);
+float *fval = malloc(100 * sizeof(float))
+int *ival = malloc(34 * sizeof(int))
+```
+##### Type Qualifiers for Pointers
+- Const pointer: When declaring a pointer as const, the address cannot be changed anymore. Yet, the object 
+it dereferences can be manipulated (int* const pointer = &iarr[0])
+- Pointer for const data: Const data cannot be manipulated using the pointer, pointer is for reading
+only (int const *pointer = &iarr[0]) 
+- Const pointer for const data: not possible to manipulate either pointer nor data, it's read only
+(int const * const pointer = &iarr[0])
+- Const parameters for functions: Not possible to perform write operation on the passed parameter
+during function execution
+- Restrict pointer: Operation on an element/object is exclusively restricet to this declared pointer.
+Accessing it with other pointers is not possible. 
+```c
+int * const pointer = &iarr[0] // const pointer
+int const *pointer = &iarr[1] // data that pointer dereferences is constant
+int const * const pointer = &iarr[2] // both constant, can only be used for reading
+int printf (const char* restrict word, ...); // not possible to manipulate "word" during execution
+int* restrict pointer = malloc(10 * sizeof(int)); // allocated memory can only be accessed with this pointer
+```
+##### Pointer on Functions
+- Pointers to functions dereference the start address of the code of a function. This pointer can be adjusted throughout
+execution and point to diffenent functions and is thus specifically useful for event-driven systems, callback-based
+APIs, etc. - it is useful when we want to exchange different functions without changing the remaining code. It is
+like an universal adapter that can use different tools but operates them in the same way.
+- Declaration:
+  - returnType (*functionPointer)(formalParams)
+    - This declaration is a pointer to a function type with >= 1 parameter(s) and a return type
+    - *functionPointer must be in ()!
+    - Name of the function is transformed implicitly into a pointer to that function
+    - The function can be called by 
+      - (*functionPointer)(formalParams)
+      - functionPointer(formalParams)
+```c
+void verarbeiteArray(int arr[], int groesse, void (*verarbeitung)(int)) {
+  for(int i = 0; i < groesse; i++) {
+    verarbeitung(arr[i]);
+  }
+}
+
+void verdoppeln(int x) {
+  printf("%d ", x * 2);
+}
+
+void quadrieren(int x) {
+  printf("%d ", x * x);
+}
+
+int main() {
+  int zahlen[] = {1, 2, 3, 4};
+
+  printf("Verdoppelte Werte: ");
+  verarbeiteArray(zahlen, 4, verdoppeln);  // Ausgabe: 2 4 6 8
+    
+  printf("\nQuadrierte Werte: ");
+  verarbeiteArray(zahlen, 4, quadrieren);  // Ausgabe: 1 4 9 16
+    
+  return 0;
+}
+```
+
+#### 11. Dynamic Memory Management
+- The dynamic memory management in c is realized with pointers and functions from <stdlib.h>
+- This has pitfalls: 
+  - Could access undefined addresses in memory
+  - Memory must be reserved and released or memory leaks can occur
+- The dynamic memory that we can access during runtime is called Heap
+  - When requesting storage, it is always contiguous memory
+##### Requesting Memory
+- malloc() requests memory of size "size" in bytes. A typeless void pointer with the first address of the memory
+block is returned. I no contiguous memory block of size "size" could be reserved, function returns NULL
+  - void* malloc(size_t size);
+- calloc() requests contiguous memory of size "size" in bytes and initialises the allocated memory with 0.
+  - void* calloc(size_t count, size_t size);
+    - We reserve count * size bytes of memory
+    - A typeless pointer to starting address is returned
+- realloc() can adjust (increase/decrease) the memory that was requested earlier with malloc/calloc. The content
+of the previous memory block stays consistent and the new memory is attached to the end - if this is not possible, 
+the function copies everything to a new memory block. We always pass the target size to realloc, if it is smaller, 
+the memory will be decreased. To decrease, we must include the actual size. 
+  - void* realloc(void* ptr, size_t size);
+##### Releasing Memory
+- When we requested memory from heap, we must release it manually after execution to avoid memory overflow
+  - void free(void* ptr); 
+  - A memory leak emerges when the address of an allocated memory gets lost and the allocated storage can neither
+    be used nor released
+
+#### 12. Complex Data Types
+In C we can create specially defined data types from a Structure (struct), a Union (union), and an Enumeration (enum).
+With typedef we can create aliases for existing data types or names of an aggregated data type.
+##### Structures
+With structures, we can define our own types by combining properties of objects and single values - called records.
+Each record consists of properties and values. The properties are the structural elements of a record / struct.
+- Declaration: 
+  - struct [identifier1] {list_of_components} [identifier2]; // functions not allowed as members (components)
+- Definition: 
+  - struct [identifier] component1, component2, ... ;
+- Declaration & Definition:
+```c
+struct myPerson {
+  char firstname[20];
+  char lastname[20];
+} myPerson1, myPerson2; // Instances of myStruct (Strukturvariablen), e.g., two persons
+```
+- Synonyms for struct types:
+```c
+typedef struct myPerson Person; // alias for myStruct to avoid writing struct keyword everytime
+struct myPerson akl; 
+Person akl; // same as above 
+
+typedef struct Example {
+  char title[20];
+  char artist[10];
+} Artist; // also declares an alias
+```
+- Access of components: either by point (.) or arrow (->) operator
+```c
+Person akl; // definition of instance "akl" of type struct myPerson resp. Person
+akl.firstname = "Alexander"; // writing elements to components resp. values to properties
+akl.lastname = "Kleinwächter";
+```
